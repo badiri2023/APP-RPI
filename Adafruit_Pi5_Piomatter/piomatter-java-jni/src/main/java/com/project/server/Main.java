@@ -1,13 +1,21 @@
 package com.project.server;
 
-import org.java_websocket.server.WebSocketServer;
+import java.io.File;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+
 import org.java_websocket.WebSocket;
-import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.exceptions.WebsocketNotConnectedException;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
+import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.server.WebSocketServer;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -16,15 +24,8 @@ import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-
-import java.io.File;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.nio.file.Files;
-import java.util.*;
-import java.util.concurrent.CountDownLatch;
-
-import java.util.Base64;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * Servidor WebSocket: només broadcast.
@@ -137,7 +138,15 @@ public class Main extends WebSocketServer {
         String name = clients.add(conn);
         System.out.println("Client connectat: " + name);
         sendClientsListToAll();
-    }
+
+        // Enviar "Hola" al client que acaba de connectar
+        JSONObject hola = new JSONObject()
+            .put("type", "text")
+            .put("message", "Hola")
+            .put("ttl_ms", 5000);
+        broadcastAll(hola.toString()); 
+       }
+
 
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {

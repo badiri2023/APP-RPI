@@ -1,13 +1,10 @@
 package com.project.client;
 
-import com.piomatter.PioMatter;
-import com.piomatter.UtilsFPS;
-import com.piomatter.UtilsImage;
-import com.piomatter.UtilsImage.FitMode;
-
-import org.json.JSONObject;
-
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
@@ -15,6 +12,13 @@ import java.util.Base64;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+
+import org.json.JSONObject;
+
+import com.piomatter.PioMatter;
+import com.piomatter.UtilsFPS;
+import com.piomatter.UtilsImage;
+import com.piomatter.UtilsImage.FitMode;
 
 public class Main {
 
@@ -253,7 +257,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        String serverURI = (args.length > 0) ? args[0] : "ws://localhost:3000";
+        String serverURI = "wss://bouabidazouaoui.ieti.site:443";
         Main app = new Main(serverURI);
         app.run();
     }
