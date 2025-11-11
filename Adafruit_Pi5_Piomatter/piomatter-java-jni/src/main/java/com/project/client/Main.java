@@ -47,7 +47,18 @@ public class Main {
     public Main(String serverUri) {
         ws = UtilsWS.getSharedInstance(serverUri);
         ws.onMessage(this::onWsMessage);
+
+        // Mostrar la URL en el display si la conexión fue exitosa
+        onWsMessage(new JSONObject()
+            .put("type", "text")
+            .put("message", serverUri)
+            .put("ttl_ms", 10000)
+            .toString());
+
+        // Solicitar configuración al servidor
+        ws.safeSend(new JSONObject().put("type", "config_request").toString());
     }
+
 
     private void onWsMessage(String msg) {
         try {
@@ -257,7 +268,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        String serverURI = "wss://bouabidazouaoui.ieti.site:443";
+        String serverURI = (args.length > 0) ? args[0] : "wss://matrixplay5.ieti.site:443";
         Main app = new Main(serverURI);
         app.run();
     }
