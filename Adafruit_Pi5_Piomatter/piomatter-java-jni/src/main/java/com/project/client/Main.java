@@ -99,15 +99,12 @@ public class Main {
             
             switch (t) {
                 
-                // Comprova si es un text pre-partida o temporal
                 case "text" -> {
                     String msgText = o.optString("message", "");
                     if (msgText.startsWith("Starts Player")) {
-                        //missatge de pre-partida
                         text = msgText.replace("Starts Player", " ");
-                        mode = Mode.PREGAME; // Mode centrat, no expira
+                        mode = Mode.PREGAME; 
                     } else {
-                        //missatge temporal
                         text = msgText;
                         if (text.startsWith("Hola ")) {
                             text = text.replaceFirst(" ", "\n");
@@ -137,7 +134,6 @@ public class Main {
                     for (int i=0; i < players.length(); i++) {
                         newPlayers.add(players.getString(i));
                     }
-                    // Nomes si estem al lobby
                     if (mode == Mode.TEXT_SCROLL) { 
                         for (String name : newPlayers) {
                             if (!knownPlayers.contains(name) && !name.equalsIgnoreCase("Pantalla_Matrix")) {
@@ -158,7 +154,6 @@ public class Main {
                     mode = Mode.NONE; 
                 }
                 
-                // Tots els missatges de pre-partida van al mode PREGAME
                 case "choosing_starter" -> {
                     mode = Mode.PREGAME;
                     text = "loading...";
@@ -172,12 +167,10 @@ public class Main {
                     System.out.println("[client] COUNTDOWN: " + text);
                 }
 
-        
                 case "game_state" -> {
-                    // Si ja hem rebut "game_over" i estem en Mode.TEXT, ignorem qualsevol missatge 
-                    // "game_state" que arribi tard.
+                    // Protecció contra missatges tardans
                     if (mode == Mode.TEXT) {
-                        return;
+                        return; 
                     }
                     mode = Mode.GAME;
                     p1_y = o.optDouble("p1_y", 0.5);
@@ -257,22 +250,53 @@ public class Main {
                 // --- Logica de dibuix ---
                 
                 if (mode == Mode.GAME) {
-                    // --- DIBUIXAR JOC ---
+                    
+                    // --- DEFINIR LAYOUT VERTICAL ---
+                    final int SCORE_Y = 10; 
+                    final int TOP_WALL_Y = 12; 
+                    final int BOTTOM_WALL_Y = HEIGHT - 2; 
+                    final int GAME_AREA_Y_START = TOP_WALL_Y + 1;
+                    final int GAME_AREA_HEIGHT = BOTTOM_WALL_Y - GAME_AREA_Y_START;
+
+                    // --- DIBUIXAR PUNTUACIÓ I PARETS---
                     g.setColor(Color.WHITE);
-                    int p1_draw_y = (int)(p1_y * HEIGHT);
-                    int p2_draw_y = (int)(p2_y * HEIGHT);
-                    g.fillRect(PADDLE_MARGIN, p1_draw_y - (PADDLE_H / 2), PADDLE_W, PADDLE_H);
-                    g.fillRect(WIDTH - PADDLE_MARGIN - PADDLE_W, p2_draw_y - (PADDLE_H / 2), PADDLE_W, PADDLE_H);
-                    
-                    int ball_draw_x = (int)(ball_x * WIDTH);
-                    int ball_draw_y = (int)(ball_y * HEIGHT);
-                    g.fillRect(ball_draw_x - (BALL_SIZE / 2), ball_draw_y - (BALL_SIZE / 2), BALL_SIZE, BALL_SIZE);
-                    
                     String score = score1 + " - " + score2;
                     g.setFont(scoreFont);
                     FontMetrics fm = g.getFontMetrics();
                     int scoreWidth = fm.stringWidth(score);
-                    g.drawString(score, (WIDTH - scoreWidth) / 2, fm.getAscent() + 2); 
+                    g.drawString(score, (WIDTH - scoreWidth) / 2, SCORE_Y); 
+                    g.fillRect(0, TOP_WALL_Y, WIDTH, 1); 
+                    g.fillRect(0, BOTTOM_WALL_Y, WIDTH, 1);
+
+                    // --- 3. DIBUIXAR PALES ---
+                    final int paddleHalfH = PADDLE_H / 2;
+                    final int minY_paddle = GAME_AREA_Y_START + paddleHalfH;
+                    final int maxY_paddle = GAME_AREA_Y_START + GAME_AREA_HEIGHT - paddleHalfH;
+
+                    // PALA 1
+                    int p1_y_center_raw = (int)(p1_y * GAME_AREA_HEIGHT) + GAME_AREA_Y_START;
+                    int p1_y_center = Math.max(minY_paddle, Math.min(maxY_paddle, p1_y_center_raw)); 
+                    g.fillRect(PADDLE_MARGIN, p1_y_center - paddleHalfH, PADDLE_W, PADDLE_H);
+
+                    // PALA 2
+                    int p2_y_center_raw = (int)(p2_y * GAME_AREA_HEIGHT) + GAME_AREA_Y_START;
+                    int p2_y_center = Math.max(minY_paddle, Math.min(maxY_paddle, p2_y_center_raw)); 
+                    g.fillRect(WIDTH - PADDLE_MARGIN - PADDLE_W, p2_y_center - paddleHalfH, PADDLE_W, PADDLE_H);
+                    
+                    //DEFINIR LÍMITS HORIZONTALS ---
+                    final int BALL_AREA_X_START = PADDLE_MARGIN + PADDLE_W; 
+                    final int BALL_AREA_X_END = WIDTH - PADDLE_MARGIN - PADDLE_W; 
+                    final int BALL_AREA_WIDTH = BALL_AREA_X_END - BALL_AREA_X_START;
+
+                    //DIBUIXAR PILOTA  ---
+                    
+                    // Mapejar 0.0-1.0 al nou ample (BALL_AREA_WIDTH) i sumar l'offset (BALL_AREA_X_START)
+                    int ball_draw_x = (int)(ball_x * BALL_AREA_WIDTH) + BALL_AREA_X_START;
+                    
+                    // El càlcul vertical
+                    int ball_draw_y = (int)(ball_y * GAME_AREA_HEIGHT) + GAME_AREA_Y_START;
+                    
+                    g.fillRect(ball_draw_x - (BALL_SIZE / 2), ball_draw_y - (BALL_SIZE / 2), BALL_SIZE, BALL_SIZE);
                 }
                 
                 else if (mode == Mode.TEXT && text != null) {
@@ -296,10 +320,9 @@ public class Main {
                     }
                 } 
 
-                // Lògica de dibuixat pel mode PREGAME
+                // Nova lògica de dibuixat pel mode PREGAME
                 else if (mode == Mode.PREGAME && text != null) {
                     // --- DIBUIXAR TEXT PRE-PARTIDA ---
-                    // (Per "loading...", "Inicia:...", "3", "2", "1", "GO!")
                     g.setFont(font);
                     g.setColor(Color.WHITE);
                     FontMetrics fm = g.getFontMetrics();
