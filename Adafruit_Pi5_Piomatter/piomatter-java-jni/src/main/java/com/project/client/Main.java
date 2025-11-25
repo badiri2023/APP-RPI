@@ -99,7 +99,6 @@ public class Main {
             
             switch (t) {
                 
-                // --- ¡CAMBIO! ---
                 // Comprova si es un text pre-partida o temporal
                 case "text" -> {
                     String msgText = o.optString("message", "");
@@ -173,7 +172,13 @@ public class Main {
                     System.out.println("[client] COUNTDOWN: " + text);
                 }
 
+        
                 case "game_state" -> {
+                    // Si ja hem rebut "game_over" i estem en Mode.TEXT, ignorem qualsevol missatge 
+                    // "game_state" que arribi tard.
+                    if (mode == Mode.TEXT) {
+                        return;
+                    }
                     mode = Mode.GAME;
                     p1_y = o.optDouble("p1_y", 0.5);
                     p2_y = o.optDouble("p2_y", 0.5);
@@ -182,18 +187,27 @@ public class Main {
                     score1 = o.optInt("score1", 0);
                     score2 = o.optInt("score2", 0);
                 }
+                
                 case "game_over" -> {
                     mode = Mode.TEXT;
                     String winner = o.optString("winner", "");
                     String reason = o.optString("reason", "");
                     
-                    if (!winner.isEmpty()) text = winner + "\nWINS!"; 
-                    else if (!reason.isEmpty()) text = reason; 
-                    else text = "GAME OVER";
+                    String finalScore = score1 + " - " + score2;
+
+                    if (!winner.isEmpty()) {
+                        text = winner + "\nWINS!\n" + finalScore; 
+                    }
+                    else if (!reason.isEmpty()) {
+                        text = reason + "\n" + finalScore; 
+                    }
+                    else {
+                        text = "GAME OVER\n" + finalScore; 
+                    }
                     
                     image = null;
                     expireAtMs = System.currentTimeMillis() + 10000; 
-                    System.out.println("[client] GAME OVER: " + text);
+                    System.out.println("[client] GAME OVER: " + text.replace("\n", " "));
                 }
                 default -> {
                 }
@@ -282,7 +296,7 @@ public class Main {
                     }
                 } 
 
-                // Nova lògica de dibuixat pel mode PREGAME
+                // Lògica de dibuixat pel mode PREGAME
                 else if (mode == Mode.PREGAME && text != null) {
                     // --- DIBUIXAR TEXT PRE-PARTIDA ---
                     // (Per "loading...", "Inicia:...", "3", "2", "1", "GO!")
@@ -423,7 +437,7 @@ public class Main {
      * Punt d'entrada principal.
      */
     public static void main(String[] args) {
-        String serverURI = (args.length > 0) ? args[0] : "wss://matrixplay5.ieti.site:443";        
+        String serverURI = (args.length > 0) ? args[0] : "wss://matrixplay5.ieti.site:443";         
         Main app = new Main(serverURI);
         app.run();
     }
