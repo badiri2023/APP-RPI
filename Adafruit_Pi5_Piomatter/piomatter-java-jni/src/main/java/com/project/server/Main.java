@@ -59,7 +59,7 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    private static final List<String> CHARACTER_NAMES = Arrays.asList("Mario", "Luigi", "Peach");
+    //private static final List<String> CHARACTER_NAMES = Arrays.asList("Mario", "Luigi", "Peach");
 
     // JSON keys
     private static final String K_TYPE = "type";
@@ -97,7 +97,7 @@ public class Main extends WebSocketServer {
 
     public Main(InetSocketAddress address, CountDownLatch quitLatch) {
         super(address);
-        this.clients = new ClientRegistry(CHARACTER_NAMES);
+        this.clients = new ClientRegistry();
         this.quitLatch = quitLatch;
     }
 
@@ -135,17 +135,9 @@ public class Main extends WebSocketServer {
     // WebSocketServer overrides
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        String name = clients.add(conn);
-        System.out.println("Client connectat: " + name);
-        sendClientsListToAll();
+        System.out.println("🔌 Nueva conexión desde: " + conn.getRemoteSocketAddress());
+    }
 
-        // Enviar "Hola" al client que acaba de connectar
-        JSONObject hola = new JSONObject()
-            .put("type", "text")
-            .put("message", "Hola")
-            .put("ttl_ms", 5000);
-        broadcastAll(hola.toString()); 
-       }
 
 
     @Override
@@ -154,11 +146,65 @@ public class Main extends WebSocketServer {
         System.out.println("Client desconnectat: " + name);
         sendClientsListToAll();
     }
+@Override
+public void onMessage(WebSocket conn, String message) {
+    try {
+        if (message.startsWith("NICKNAME:")) {
+            String nickname = message.substring("NICKNAME:".length()).trim();
+            boolean ok = clients.registerNickname(nickname, conn);
+            if (ok) {
+                conn.send("ACCEPTED");
+                sendClientsListToAll();
+                System.out.println("Client registrat amb nom: " + nickname);
 
-    @Override
-    public void onMessage(WebSocket conn, String message) {
-        // Broadcast-only: ignore
+                JSONObject hola = new JSONObject()
+                    .put("type", "text")
+                    .put("message", "Hola " + nickname)
+                    .put("ttl_ms", 5000);
+                broadcastAll(hola.toString());
+            } else {
+                conn.send("REJECTED");
+                conn.close(); // ❗ Cierra si el nombre está duplicado
+                System.out.println("Intent fallit: nom duplicat → " + nickname);
+            }
+            return;
+        }
+        // Si el cliente aún no está registrado, ignoramos o cerramos
+        if (clients.nameBySocket(conn) == null) {
+            conn.send("REJECTED:No registrat");
+            conn.close(); // ❗ Cierra si no ha enviado nickname
+            System.out.println("Client sense nom intentant enviar: " + message);
+            return;
+        }
+
+        // Después: procesar mensajes JSON
+        JSONObject msg = new JSONObject(message);
+        String type = msg.optString("type", "");
+
+        if (type.equals("config_request")) {
+            try (InputStream is = Thread.currentThread()
+                                        .getContextClassLoader()
+                                        .getResourceAsStream("data/config.txt")) {
+                if (is == null) {
+                    System.out.println("No s'ha trobat config.txt dins resources/data");
+                    return;
+                }
+
+                String content = new String(is.readAllBytes());
+                sendSafe(conn, content);
+                System.out.println("Respost config_request amb: " + content);
+
+            } catch (Exception e) {
+                System.out.println("Error llegint config.txt: " + e.getMessage());
+            }
+        }
+
+    } catch (Exception e) {
+        System.out.println("Error processant missatge: " + e.getMessage());
     }
+}
+
+
 
     @Override
     public void onError(WebSocket conn, Exception ex) {

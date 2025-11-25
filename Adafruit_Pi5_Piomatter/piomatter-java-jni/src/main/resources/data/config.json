@@ -1,5 +1,6 @@
 {
   "type": "text",
-  "message": "Grup Pong 5",
-  "ttl_ms": 5000
+  "message": "matrix5",
+  "ttl_ms": 5000,
+  "y_offset": 20
 }
